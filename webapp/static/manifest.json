@@ -1,0 +1,21 @@
+{
+  "name": "ESP32 Remote LCD Controller",
+  "short_name": "ESP32 Remote",
+  "description": "Invia messaggi all'ESP32 tramite WebApp.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#4a90e2",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
