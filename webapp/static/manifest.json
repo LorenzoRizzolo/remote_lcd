@@ -4,8 +4,8 @@
   "description": "Invia messaggi all'ESP32 tramite WebApp.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#4a90e2",
+  "background_color": "#87d0e2ff",
+  "theme_color": "#87d0e2ff",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
