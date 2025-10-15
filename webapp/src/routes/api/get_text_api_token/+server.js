@@ -6,6 +6,9 @@ export async function GET({ url }) {
 	const isValid = token === env.API_TOKEN;
 
 	if (isValid) {
+		if(!fs.existsSync(".message")){
+			return new Response("No message found", { status: 404 });
+		}
 		const message = fs.readFileSync(".message", "utf-8");
 		// Return a proper Response
 		return new Response(message, {
