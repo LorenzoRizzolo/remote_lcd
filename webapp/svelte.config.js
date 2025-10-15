@@ -1,9 +1,12 @@
-// svelte.config.js
 import adapter from '@sveltejs/adapter-node'; 
 
 const config = {
   kit: {
-    adapter: adapter()
+    // Altre configurazioni del kit...
+    adapter: adapter({
+      // Specifica la directory di output
+      outDir: 'build'
+    })
   }
 };
 export default config;
