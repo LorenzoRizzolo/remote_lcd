@@ -5,20 +5,21 @@
 
 ## What are the required components?
 You will need:  
-- an **ESP32-C3 Supermini**  
-- a **TFT LCD** with the **ST7789 driver**, 1.9" 170x320 resolution
+- an **ESP32-C3 Supermini** or **ESP32 classic** 
+- a **TFT LCD** with the **ST7789 driver**, 1.9" 170x320 resolution in my case, but you can personalize
 
-## Project structure
-This project consists of two main parts:
+## Setting up the Esp32 or Esp32-c3 supermini
+in the folder `ESP32_RemoteLCD` you have a file `ESP32_RemoteLCD\config.h.example` to copy into `ESP32_RemoteLCD\src\config.h` and `ESP32_RemoteLCD\config.cpp.example` to copy into `ESP32_RemoteLCD\src\config.cpp` where you need insert your credentials for wifi connection and other params.
 
-- **The WebApp:** provides a simple password-protected interface that lets you write text to a file and access it later via an API token.  
-- **RemoteLCD (ESP32):** contains the firmware source code for the ESP32. It uses **PlatformIO**, so you can open the `RemoteLCD` folder directly with it.
+For flash and open serial monitor for esp32c3 use
+```bash
+sudo pio run -e esp32-c3 -t upload && sudo pio device monitor -e esp32-c3 -b 115200
+```
+and for esp32 classic
+```bash
+sudo pio run -e esp32 -t upload && sudo pio device monitor -e esp32 -b 115200
+```
 
-> The WebApp is optional — it’s mainly used to keep your text private instead of public.
-
-## Setting up the WebApp
-1. Copy the file `.env.example` to `.env`.  
-2. Edit the `.env` file and fill in all the required environment variables.  
-3. Build the project with:
-   ```bash
-   npm run build
+- **-e** is the environment, **esp32c3** or *esp32*
+- **-t** is the target, beacouse we want upload the code to the device
+- **-b** is the baud rate of the serial communication, the speed

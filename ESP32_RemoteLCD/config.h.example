@@ -1,0 +1,31 @@
+#ifndef CONFIG_FILE
+  #define CONFIG_FILE
+
+  // LCD config
+  #define SCREEN_WIDTH 320
+  #define SCREEN_HEIGHT 170
+  #define TEXT_SIZE 2
+  #define ROTATION 1
+  #define DELAY_UPDATE_SCREEN 5000
+
+  // LCD TFT pins esp32c3
+  #define TFT_CS   8
+  #define TFT_DC   9
+  #define TFT_RST  21
+  #define TFT_SDA  6   
+  #define TFT_SCL  4
+
+  // LED config for blink on message update
+  #define LED_PIN 2
+  #define LED_BLINK_DURATION 200 // milliseconds
+
+  // Wi-Fi config
+  #define WIFI_COUNT 3
+  #define WIFI_TIME_OUT 10000 // timeout of 10 seconds
+
+  // Declare (not define) the arrays here
+  extern const char* WIFI_SSIDS[WIFI_COUNT];
+  extern const char* WIFI_PASSWORDS[WIFI_COUNT];
+  #define WIFI_HOSTNAME "esp32c3"
+
+#endif
