@@ -43,7 +43,7 @@ int initWiFi() {
       // ===== Start mDNS =====
       if (MDNS.begin(WiFi.getHostname())) {
         Serial.println("🌐 mDNS started successfully!");
-        Serial.printf("You can access the device at: http://%s.local/\n", WiFi.getHostname());
+        Serial.printf("You can access the device at: http://%s\n", WiFi.getHostname());
       } else {
         Serial.println("⚠️ Failed to start mDNS!");
       }

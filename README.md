@@ -7,6 +7,7 @@
 You will need:  
 - an **ESP32-C3 Supermini** or **ESP32 classic** 
 - a **TFT LCD** with the **ST7789 driver**, 1.9" 170x320 resolution in my case, but you can personalize
+- a **DHT22 temperature sensor** to get the local temperature
 
 ## Setting up the Esp32 or Esp32-c3 supermini
 in the folder `ESP32_RemoteLCD` you have a file `ESP32_RemoteLCD\config.h.example` to copy into `ESP32_RemoteLCD\src\config.h` and `ESP32_RemoteLCD\config.cpp.example` to copy into `ESP32_RemoteLCD\src\config.cpp` where you need insert your credentials for wifi connection and other params.

@@ -16,5 +16,7 @@ void clearTFT();
  */
 void initializeTFT();
 
+void showError(String error);
+
 
 extern Adafruit_ST7789 TFT_SCREEN;

@@ -1,38 +1,52 @@
 #include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
-#include <ESPmDNS.h> 
+#include <ESPmDNS.h>
+#include <DHT.h>
+#include <DHT_U.h>
 
 #include "config.h"
 #include "tft_module.h"
 #include "wifi_module.h"
 
-
-// ===== Global objects =====
+// Web server running on port 80
 AsyncWebServer server(80);
+// Preferences for NVS storage
 Preferences prefs;
-String message = "Starting device...";
+// Message to display on TFT
+String message = "";
+// LED Blink Task handle
 TaskHandle_t ledTaskHandle = NULL;
-int temperature = 0; // Placeholder for temperature value
+// DHT22 sensor instance
+DHT dht(DHTPIN, DHTTYPE);
+float temperature = 0;
 
 void printOnLCDScreen(String msg){
-  // showMessageOnTFT(
-  //   (String)WiFi.getHostname() + " - " + WiFi.localIP().toString() + "\n\n" +
-  //   "Temperatura: " + temperature + " C" + "\n\n" +
-  //   msg
-  // );
-
   clearTFT();
   TFT_SCREEN.setTextColor(ST77XX_BLUE);
   TFT_SCREEN.println((String)WiFi.getHostname() + " - " + WiFi.localIP().toString());
-  TFT_SCREEN.setTextColor(ST77XX_ORANGE);
-  TFT_SCREEN.println("\nTemperatura: " + (String)temperature + " C");
+  TFT_SCREEN.setTextColor(ST77XX_GREEN);
+  TFT_SCREEN.setTextSize(4);
+  TFT_SCREEN.print("\n");
+
+  // Print temperature with color coding
+  if (temperature <= 12) {
+      TFT_SCREEN.setTextColor(ST77XX_BLUE);
+  } else if (temperature >= 13 && temperature <= 16) {
+      TFT_SCREEN.setTextColor(ST77XX_GREEN);
+  } else if (temperature >= 16) {
+      TFT_SCREEN.setTextColor(ST77XX_ORANGE);
+  }
+  TFT_SCREEN.print(temperature, 1);
+  TFT_SCREEN.setTextSize(2);
+  TFT_SCREEN.print(" gradi");
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
-  TFT_SCREEN.println("\n" + msg);
+
+  // print the message
+  TFT_SCREEN.print("\n\n\n" + (String)msg);
 }
 
 void ledTask(void *parameter) {
-  Serial.println("LED Blink Task started.");
   digitalWrite(LED_BLINK_PIN, HIGH);
   vTaskDelay(LED_BLINK_DURATION / portTICK_PERIOD_MS); // wait for the specified duration
   digitalWrite(LED_BLINK_PIN, LOW);
@@ -104,8 +118,19 @@ void setup() {
 }
 
 void loop() {
-  temperature+=1;
-  delay(DELAY_UPDATE_SCREEN);
+
+  // Read temperature from DHT22
+  temperature = dht.readTemperature();
+  temperature = random(0, 30); // Simulated temperature for testing
+  if (isnan(temperature)) {
+    Serial.println("Errore nella lettura del sensore DHT22!");
+    showError("Errore sensore\nDHT"+String(DHTTYPE));
+    delay(2000);
+    return;
+  }
+
+  // Update LCD screen with new temperature
   printOnLCDScreen(message);
-  // Here read the temperature sensor and update the TFT display
+
+  delay(DELAY_UPDATE_SCREEN);
 }

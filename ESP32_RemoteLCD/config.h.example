@@ -5,7 +5,7 @@
   #define SCREEN_WIDTH 320
   #define SCREEN_HEIGHT 170
   #define TEXT_SIZE 2
-  #define ROTATION 1
+  #define ROTATION 3
   #define DELAY_UPDATE_SCREEN 5000
 
   // LCD TFT pins esp32c3
@@ -16,8 +16,12 @@
   #define TFT_SCL  4
 
   // LED config for blink on message update
-  #define LED_PIN 2
-  #define LED_BLINK_DURATION 200 // milliseconds
+  #define LED_PIN 10
+  #define LED_BLINK_DURATION 2000 // milliseconds
+
+  // DHT22 sensor config
+  #define DHTPIN 2          // Pin digitale collegato al DHT22
+  #define DHTTYPE DHT22     // Tipo sensore: DHT11, DHT22, DHT21
 
   // Wi-Fi config
   #define WIFI_COUNT 3
@@ -26,6 +30,6 @@
   // Declare (not define) the arrays here
   extern const char* WIFI_SSIDS[WIFI_COUNT];
   extern const char* WIFI_PASSWORDS[WIFI_COUNT];
-  #define WIFI_HOSTNAME "esp32c3"
+  #define WIFI_HOSTNAME "esp32c3" // set the device hostname
 
 #endif
