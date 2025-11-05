@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include <ESPAsyncWebServer.h>
 #include <Preferences.h>
 #include <ESPmDNS.h>
@@ -20,14 +21,15 @@ TaskHandle_t ledTaskHandle = NULL;
 // DHT22 sensor instance
 DHT dht(DHTPIN, DHTTYPE);
 float temperature = 0;
+float humidity = 0;
 
 void printOnLCDScreen(String msg){
   clearTFT();
-  TFT_SCREEN.setTextColor(ST77XX_BLUE);
+  TFT_SCREEN.setTextColor(ST77XX_MAGENTA);
   TFT_SCREEN.println((String)WiFi.getHostname() + " - " + WiFi.localIP().toString());
   TFT_SCREEN.setTextColor(ST77XX_GREEN);
-  TFT_SCREEN.setTextSize(4);
   TFT_SCREEN.print("\n");
+  TFT_SCREEN.setTextSize(4);
 
   // Print temperature with color coding
   if (temperature <= 12) {
@@ -39,11 +41,17 @@ void printOnLCDScreen(String msg){
   }
   TFT_SCREEN.print(temperature, 1);
   TFT_SCREEN.setTextSize(2);
-  TFT_SCREEN.print(" gradi");
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
+  TFT_SCREEN.print(" C");
+
+  TFT_SCREEN.print("\n\n");
+  TFT_SCREEN.setTextColor(ST77XX_YELLOW);
+  TFT_SCREEN.print(humidity, 1);
+  TFT_SCREEN.setTextColor(ST77XX_WHITE);
+  TFT_SCREEN.println(" % di umidita");
 
   // print the message
-  TFT_SCREEN.print("\n\n\n" + (String)msg);
+  TFT_SCREEN.print("\n" + (String)msg);
 }
 
 void ledTask(void *parameter) {
@@ -52,6 +60,23 @@ void ledTask(void *parameter) {
   digitalWrite(LED_BLINK_PIN, LOW);
   ledTaskHandle = NULL; // Clear the task handle  
   vTaskDelete(NULL); // Delete this task
+}
+
+void update_message(String message){
+  // Update LCD screen
+  printOnLCDScreen(message);
+
+  // Create LED blink task
+  if(ledTaskHandle == NULL){
+    xTaskCreate(
+      ledTask,          // funzione del task
+      "Task LED",       // nome del task
+      1024,             // dimensione stack in byte
+      NULL,             // parametro (nessuno)
+      1,                // priorità
+      &ledTaskHandle    // handle
+    );
+  }
 }
 
 void setup() {
@@ -64,29 +89,44 @@ void setup() {
 
   // initialize the LCD screen
   initializeTFT();
-  showMessageOnTFT("Initializing device...");
+  showMessageOnTFT("Inizializzazione del dispositivo...");
+
+  // ===== Initialize DHT22 sensor =====
+  dht.begin();
 
   // ===== Connect to WiFi =====
   if(initWiFi() == 200){
-    Serial.println("WiFi connected successfully.");
-    showMessageOnTFT("Connected to WiFi: \n\n" + WIFI_SSID);
+    Serial.println("Connessione WiFi riuscita.");
+    showMessageOnTFT("Connesso al WiFi: \n\n" + WIFI_SSID);
     delay(2000);
   }else{
-    Serial.println("WiFi connection failed.");
-    showMessageOnTFT("WiFi connection failed.");
+    Serial.println("Connessione WiFi fallita.");
+    showMessageOnTFT("Connessione WiFi fallita.");
     delay(2000);
   }
 
   // ===== Load message from NVS =====
   prefs.begin("remote_lcd", false);
-  message = prefs.getString("msg", "Insert a message");
-  Serial.println("\nLoaded message: " + message);
+  message = prefs.getString("msg", "Nessun messaggio presente");
+  // api_message is used to remember the last message into api endpoint
+  String api_message = prefs.getString("api_msg", "Nessun messaggio presente");
+  Serial.println("Messaggio caricato: " + message);
   printOnLCDScreen(message);
 
   // ===== Async WebServer routes =====
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    String html = "<form action='/update'><input name='msg'><input type='submit'></form>";
-    html += "<p>Current message: " + message + "</p>";
+    String html = "<center>"
+                  "<h1>Nuovo Messaggio</h1>"
+                  "<form action='/update'>"
+                  "<input name='msg'><input type='submit' value='Invia'>"
+                  "</form>"
+                  "<h1>Messaggio Attuale</h1>"
+                  "<p>"+message+"</p>"
+                  "<h1>Temperatura</h1>"
+                  "<p>"+temperature+" &deg;C</p>"
+                  "<h1>Umidit&agrave;</h1>"
+                  "<p>"+humidity+" %</p>"
+                  "</center>";
     request->send(200, "text/html", html);
   });
 
@@ -95,23 +135,11 @@ void setup() {
       message = request->getParam("msg")->value();
       prefs.putString("msg", message);     // Save to NVS
 
-      // Update LCD screen
-      printOnLCDScreen(message);
-
-      // Create LED blink task
-      if(ledTaskHandle == NULL){
-        xTaskCreate(
-          ledTask,          // funzione del task
-          "LED Task",       // nome del task
-          1024,             // dimensione stack in byte
-          NULL,             // parametro (nessuno)
-          1,                // priorità
-          &ledTaskHandle    // handle
-        );
-      }
-      Serial.println("New message: " + message);
+      update_message(message);
+      
+      Serial.println("Nuovo messaggio da web: " + message);
     }
-    request->send(200, "text/html", "Message updated! <br><a href='/'>Back</a>");
+    request->send(200, "text/html", "Messaggio aggiornato! <br><a href='/'>Torna indietro</a>");
   });
 
   server.begin();
@@ -121,16 +149,43 @@ void loop() {
 
   // Read temperature from DHT22
   temperature = dht.readTemperature();
-  temperature = random(0, 30); // Simulated temperature for testing
-  if (isnan(temperature)) {
+  humidity = dht.readHumidity();
+  if (isnan(temperature) || isnan(humidity)) {
     Serial.println("Errore nella lettura del sensore DHT22!");
-    showError("Errore sensore\nDHT"+String(DHTTYPE));
-    delay(2000);
-    return;
+    temperature = 0.0;
+    humidity = 0.0;
+  }else{
+    Serial.println("Temperatura: " + String(temperature) + " C - Umidita: " + String(humidity) + " %");
+  }
+
+  boolean updated = false;
+
+  if(GET_FROM_API){
+    // Fetch message from API
+    HTTPClient http;
+    http.begin(API_URL);
+    int httpCode = http.GET();
+    if (httpCode == 200) {
+      String api_message = http.getString();
+      if(api_message != prefs.getString("api_msg", "")){
+        message = api_message;
+        prefs.putString("msg", message);         // Save new message to NVS
+        prefs.putString("api_msg", api_message); // Update last API message
+
+        updated = true;
+        update_message(message);
+
+        Serial.println("Nuovo messaggio da API: " + message);
+      }
+    } else {
+      Serial.println("Errore nella richiesta HTTP: " + String(httpCode));
+    }
   }
 
   // Update LCD screen with new temperature
-  printOnLCDScreen(message);
+  if(!updated){
+    printOnLCDScreen(message);
+  }
 
   delay(DELAY_UPDATE_SCREEN);
 }
