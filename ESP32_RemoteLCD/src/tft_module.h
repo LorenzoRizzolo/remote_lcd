@@ -18,5 +18,9 @@ void initializeTFT();
 
 void showError(String error);
 
+void newMessageScreen();
+
+void drawHorizontalLine(int y, uint16_t color = ST77XX_WHITE, int thickness = 1, int margin = 10);
+
 
 extern Adafruit_ST7789 TFT_SCREEN;

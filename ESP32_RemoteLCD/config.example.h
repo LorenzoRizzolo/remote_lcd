@@ -14,6 +14,7 @@
   #define TFT_RST  21
   #define TFT_SDA  6   
   #define TFT_SCL  4   
+  #define USE_MIDDLELINE false // Use a middle line to separate sections  
 
   // LED config for blink on message update
   #define LED_BLINK_PIN 10

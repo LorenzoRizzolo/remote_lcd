@@ -25,10 +25,18 @@ float humidity = 0;
 
 void printOnLCDScreen(String msg){
   clearTFT();
+  TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.setTextColor(ST77XX_MAGENTA);
-  TFT_SCREEN.println((String)WiFi.getHostname() + " - " + WiFi.localIP().toString());
+  TFT_SCREEN.println("\n " +(String)WiFi.getHostname() + " \n " + WiFi.localIP().toString() + " ("  + WiFi.RSSI() + ")");
   TFT_SCREEN.setTextColor(ST77XX_GREEN);
   TFT_SCREEN.print("\n");
+  
+  if(USE_MIDDLELINE){
+    drawHorizontalLine(TFT_SCREEN.getCursorY(), ST77XX_WHITE, 2, 10);
+    TFT_SCREEN.print("\n");
+  }
+
+  TFT_SCREEN.print(" ");
   TFT_SCREEN.setTextSize(4);
 
   // Print temperature with color coding
@@ -42,16 +50,22 @@ void printOnLCDScreen(String msg){
   TFT_SCREEN.print(temperature, 1);
   TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
-  TFT_SCREEN.print(" C");
+  TFT_SCREEN.print("C");
 
   TFT_SCREEN.print("\n\n");
   TFT_SCREEN.setTextColor(ST77XX_YELLOW);
+  TFT_SCREEN.print(" ");
   TFT_SCREEN.print(humidity, 1);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   TFT_SCREEN.println(" % di umidita");
 
+  if(USE_MIDDLELINE){
+    TFT_SCREEN.print("\n");
+    drawHorizontalLine(TFT_SCREEN.getCursorY(), ST77XX_WHITE, 2, 10);
+  }
+
   // print the message
-  TFT_SCREEN.print("\n" + (String)msg);
+  TFT_SCREEN.print("\n " + (String)msg);
 }
 
 void ledTask(void *parameter) {
@@ -66,14 +80,17 @@ void update_message(String message){
   // Update LCD screen
   printOnLCDScreen(message);
 
+  // Show new message screen
+  newMessageScreen();
+
   // Create LED blink task
   if(ledTaskHandle == NULL){
     xTaskCreate(
-      ledTask,          // funzione del task
-      "Task LED",       // nome del task
-      1024,             // dimensione stack in byte
-      NULL,             // parametro (nessuno)
-      1,                // priorità
+      ledTask,          // task function
+      "Task LED",       // task name
+      1024,             // stack size in bytes
+      NULL,             // parameter (none)
+      1,                // priority
       &ledTaskHandle    // handle
     );
   }
@@ -97,7 +114,7 @@ void setup() {
   // ===== Connect to WiFi =====
   if(initWiFi() == 200){
     Serial.println("Connessione WiFi riuscita.");
-    showMessageOnTFT("Connesso al WiFi: \n\n" + WIFI_SSID);
+    showMessageOnTFT("Connesso al WiFi: " + WIFI_SSID);
     delay(2000);
   }else{
     Serial.println("Connessione WiFi fallita.");
@@ -111,7 +128,7 @@ void setup() {
   // api_message is used to remember the last message into api endpoint
   String api_message = prefs.getString("api_msg", "Nessun messaggio presente");
   Serial.println("Messaggio caricato: " + message);
-  printOnLCDScreen(message);
+  // printOnLCDScreen(message);
 
   // ===== Async WebServer routes =====
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -182,7 +199,7 @@ void loop() {
     }
   }
 
-  // Update LCD screen with new temperature
+  // Update LCD screen with new temperature just if no message update occurred
   if(!updated){
     printOnLCDScreen(message);
   }
