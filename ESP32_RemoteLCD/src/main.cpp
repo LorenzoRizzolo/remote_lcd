@@ -5,6 +5,8 @@
 #include <ESPmDNS.h>
 #include <DHT.h>
 #include <DHT_U.h>
+#include <SPIFFS.h>
+#include <time.h>
 
 #include "config.h"
 #include "tft_module.h"
@@ -23,11 +25,42 @@ DHT dht(DHTPIN, DHTTYPE);
 float temperature = 0;
 float humidity = 0;
 
+// Global current time strings (updated from NTP)
+String currentTimeStr = "";      // e.g., "2025-12-07 13:53"
+String currentDateStr = "";      // e.g., "2025-12-07"
+String currentTimeOnlyStr = "";  // e.g., "13:53"
+
+static void updateCurrentTimeStr() {
+  struct tm timeinfo;
+  if (getLocalTime(&timeinfo, 1000)) { // wait up to 1s
+    char bufDT[20]; // DD/MM/YYYY HH:MM
+    strftime(bufDT, sizeof(bufDT), "%d/%m/%Y %H:%M", &timeinfo);
+    currentTimeStr = String(bufDT);
+
+    char bufD[11]; // DD/MM/YYYY
+    strftime(bufD, sizeof(bufD), "%d/%m/%Y", &timeinfo);
+    currentDateStr = String(bufD);
+
+    char bufT[6]; // HH:MM
+    strftime(bufT, sizeof(bufT), "%H:%M", &timeinfo);
+    currentTimeOnlyStr = String(bufT);
+  }
+}
+
 void printOnLCDScreen(String msg){
+  // Update current time strings
+  updateCurrentTimeStr();
   clearTFT();
   TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.setTextColor(ST77XX_MAGENTA);
-  TFT_SCREEN.println("\n " +(String)WiFi.getHostname() + " \n " + WiFi.localIP().toString() + " ("  + WiFi.RSSI() + ")");
+  if(WIFI_SSID!=""){
+    TFT_SCREEN.println("\n " + WiFi.localIP().toString());
+    // Draw RSSI bars under IP
+    int currentY = TFT_SCREEN.getCursorY();
+    drawRSSIBars(WiFi.RSSI(), SCREEN_WIDTH-60, currentY+5, 6, 4, 2);
+  }else{
+    TFT_SCREEN.println("\n No WiFi");
+  }
   TFT_SCREEN.setTextColor(ST77XX_GREEN);
   TFT_SCREEN.print("\n");
   
@@ -35,6 +68,18 @@ void printOnLCDScreen(String msg){
     drawHorizontalLine(TFT_SCREEN.getCursorY(), ST77XX_WHITE, 2, 10);
     TFT_SCREEN.print("\n");
   }
+
+  //  Print current time
+  TFT_SCREEN.print(" ");
+  TFT_SCREEN.setTextColor(ST77XX_WHITE);
+  if(currentTimeOnlyStr=="" || currentDateStr=="" || WIFI_SSID==""){
+    TFT_SCREEN.print("Orario non disponibile");
+  }else{
+    TFT_SCREEN.print(currentTimeOnlyStr + " - " + currentDateStr);
+  }
+
+  TFT_SCREEN.setTextSize(2);
+  TFT_SCREEN.print("\n\n");
 
   TFT_SCREEN.print(" ");
   TFT_SCREEN.setTextSize(4);
@@ -50,14 +95,14 @@ void printOnLCDScreen(String msg){
   TFT_SCREEN.print(temperature, 1);
   TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
-  TFT_SCREEN.print("C");
+  TFT_SCREEN.print(" C");
 
   TFT_SCREEN.print("\n\n");
   TFT_SCREEN.setTextColor(ST77XX_YELLOW);
   TFT_SCREEN.print(" ");
   TFT_SCREEN.print(humidity, 1);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
-  TFT_SCREEN.println(" % di umidita");
+  TFT_SCREEN.println(" %");
 
   if(USE_MIDDLELINE){
     TFT_SCREEN.print("\n");
@@ -106,7 +151,7 @@ void setup() {
 
   // initialize the LCD screen
   initializeTFT();
-  showMessageOnTFT("Inizializzazione del dispositivo...");
+  showMessageOnTFT("\n Avvio dispositivo...");
 
   // ===== Initialize DHT22 sensor =====
   dht.begin();
@@ -114,12 +159,20 @@ void setup() {
   // ===== Connect to WiFi =====
   if(initWiFi() == 200){
     Serial.println("Connessione WiFi riuscita.");
-    showMessageOnTFT("Connesso al WiFi: " + WIFI_SSID);
+    // showMessageOnTFT("Connesso al WiFi: " + WIFI_SSID);
+    // Setup timezone and NTP servers using configTzTime (handles TZ internally)
+    configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
+    updateCurrentTimeStr();
     delay(2000);
   }else{
     Serial.println("Connessione WiFi fallita.");
-    showMessageOnTFT("Connessione WiFi fallita.");
+    // showMessageOnTFT("Connessione WiFi fallita.");
     delay(2000);
+  }
+
+  // ===== Init SPIFFS for static web files =====
+  if(!SPIFFS.begin(true)){
+    Serial.println("Errore nell'inizializzazione SPIFFS");
   }
 
   // ===== Load message from NVS =====
@@ -131,20 +184,15 @@ void setup() {
   // printOnLCDScreen(message);
 
   // ===== Async WebServer routes =====
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    String html = "<center>"
-                  "<h1>Nuovo Messaggio</h1>"
-                  "<form action='/update'>"
-                  "<input name='msg'><input type='submit' value='Invia'>"
-                  "</form>"
-                  "<h1>Messaggio Attuale</h1>"
-                  "<p>"+message+"</p>"
-                  "<h1>Temperatura</h1>"
-                  "<p>"+temperature+" &deg;C</p>"
-                  "<h1>Umidit&agrave;</h1>"
-                  "<p>"+humidity+" %</p>"
-                  "</center>";
-    request->send(200, "text/html", html);
+  // Serve static files from SPIFFS 'data' folder
+  // Disable caching to ensure latest files are served
+  server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
+
+  // JSON status endpoint for the web UI
+  server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
+    updateCurrentTimeStr();
+    String json = "{\"message\":\"" + message + "\",\"temperature\":" + String(temperature, 1) + ",\"humidity\":" + String(humidity, 1) + ",\"time\":\"" + currentTimeStr + "\",\"rssi\":" + String(WiFi.RSSI()) + ",\"ssid\":\"" + WIFI_SSID + "\"}";
+    request->send(200, "application/json", json);
   });
 
   server.on("/update", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -156,7 +204,7 @@ void setup() {
       
       Serial.println("Nuovo messaggio da web: " + message);
     }
-    request->send(200, "text/html", "Messaggio aggiornato! <br><a href='/'>Torna indietro</a>");
+    request->send(200, "text/html", "Messaggio aggiornato!");
   });
 
   server.begin();
@@ -165,7 +213,7 @@ void setup() {
 void loop() {
 
   // Read temperature from DHT22
-  temperature = dht.readTemperature();
+  temperature = dht.readTemperature() + TEMP_ERROR;
   humidity = dht.readHumidity();
   if (isnan(temperature) || isnan(humidity)) {
     Serial.println("Errore nella lettura del sensore DHT22!");

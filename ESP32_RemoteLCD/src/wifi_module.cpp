@@ -21,7 +21,7 @@ int initWiFi() {
 
   for (int i = 0; i < WIFI_COUNT; i++) {
     Serial.printf("Connetendo alla rete '%s' con '%s'...\n", WIFI_SSIDS[i], WIFI_PASSWORDS[i]);
-    showMessageOnTFT("Connettendo a: " + String(WIFI_SSIDS[i]));
+    // showMessageOnTFT("Connettendo a: " + String(WIFI_SSIDS[i]));
 
     WiFi.begin(WIFI_SSIDS[i], WIFI_PASSWORDS[i]);
 

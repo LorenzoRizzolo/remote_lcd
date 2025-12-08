@@ -68,3 +68,24 @@ void drawHorizontalLine(int y, uint16_t color = ST77XX_WHITE, int thickness = 1,
     TFT_SCREEN.drawFastHLine(x, y + i, width, color);
   }
 }
+
+void drawRSSIBars(int rssi, int x, int y, int barWidth, int barSpacing, int baseHeight) {
+  int bars = 0;
+  if (rssi >= -40) bars = 5;
+  else if (rssi >= -55) bars = 4;
+  else if (rssi >= -65) bars = 3;
+  else if (rssi >= -75) bars = 2;
+  else if (rssi >= -85) bars = 1;
+  else bars = 0;
+
+  int maxBars = 5;
+  uint16_t colorOn = ST77XX_GREEN;
+  uint16_t colorOff = ST77XX_BLUE;
+  for (int i = 0; i < maxBars; i++) {
+    int height = baseHeight + i * 6;
+    int bx = x + i * (barWidth + barSpacing);
+    int by = y - height;
+    uint16_t color = (i < bars) ? colorOn : colorOff;
+    TFT_SCREEN.fillRect(bx, by, barWidth, height, color);
+  }
+}

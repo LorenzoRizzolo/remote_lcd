@@ -22,5 +22,7 @@ void newMessageScreen();
 
 void drawHorizontalLine(int y, uint16_t color = ST77XX_WHITE, int thickness = 1, int margin = 10);
 
+// Draw 5 RSSI bars based on WiFi.RSSI() value
+void drawRSSIBars(int rssi, int x = 10, int y = 20, int barWidth = 6, int barSpacing = 4, int baseHeight = 10);
 
 extern Adafruit_ST7789 TFT_SCREEN;
