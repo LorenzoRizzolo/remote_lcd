@@ -9,54 +9,67 @@ String WIFI_SSID = "";
 // Initialize WiFi connection and start mDNS
 // ===================================================
 int initWiFi() {
-  Serial.println("🔍 Connettendo alle reti salvate...");
+  WIFI_SSID = "";
+  Serial.println("🔍 Scanning nearby networks...");
 
   WiFi.mode(WIFI_STA);
+  WiFi.disconnect();   // clear previous connections
+  delay(200);
 
-  Serial.println("Hostname prima della rinomina: " + String(WiFi.getHostname()));
-  // WiFi.setHostname(WIFI_HOSTNAME);
-
-  // Set WiFi transmission power
+  // Set transmission power
   WiFi.setTxPower(WIFI_POWER);
 
-  for (int i = 0; i < WIFI_COUNT; i++) {
-    Serial.printf("Connetendo alla rete '%s' con '%s'...\n", WIFI_SSIDS[i], WIFI_PASSWORDS[i]);
-    // showMessageOnTFT("Connettendo a: " + String(WIFI_SSIDS[i]));
+  // === Scan networks ===
+  int n = WiFi.scanNetworks();
+  if (n <= 0) {
+    Serial.println("❌ No networks found.");
+    return 500;
+  }
 
-    WiFi.begin(WIFI_SSIDS[i], WIFI_PASSWORDS[i]);
+  Serial.printf("📡 %d networks found:\n", n);
 
-    unsigned long startAttemptTime = millis();
+  // === Search among found networks for a saved network ===
+  for (int i = 0; i < n; i++) {
+    String foundSSID = WiFi.SSID(i);
+    Serial.printf(" - %s (%d dBm)\n", foundSSID.c_str(), WiFi.RSSI(i));
 
-    // Wait up to 10 seconds for each network
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < WIFI_TIME_OUT) {
-      Serial.print(".");
-      delay(500);
-    }
+    // compare with known networks list
+    for (int s = 0; s < WIFI_COUNT; s++) {
+      if (foundSSID == WIFI_SSIDS[s]) {
+        Serial.printf("🎯 Known network found: %s\n", foundSSID.c_str());
+        Serial.println("🔗 Attempting to connect...");
+        WiFi.begin(WIFI_SSIDS[s], WIFI_PASSWORDS[s]);
+        unsigned long startAttemptTime = millis();
 
-    if (WiFi.status() == WL_CONNECTED) {
-      WIFI_SSID = WIFI_SSIDS[i];
+        while (WiFi.status() != WL_CONNECTED &&
+               millis() - startAttemptTime < WIFI_TIME_OUT) {
+          Serial.print(".");
+          delay(500);
+        }
 
-      Serial.println("\n✅ Connessione riuscita!");
-      Serial.print("SSID: "); Serial.println(WIFI_SSIDS[i]);
-      Serial.print("Hostname: "); Serial.println(WiFi.getHostname());
-      Serial.print("IP: "); Serial.println(WiFi.localIP());
-      Serial.print("RSSI: "); Serial.println(WiFi.RSSI());
+        if (WiFi.status() == WL_CONNECTED) {
+          WIFI_SSID = foundSSID;
+          Serial.println("\n✅ Connection successful!");
+          Serial.print("SSID: "); Serial.println(WIFI_SSID);
+          Serial.print("IP: "); Serial.println(WiFi.localIP());
 
-      // ===== Start mDNS =====
-      if (MDNS.begin(WiFi.getHostname())) {
-        Serial.println("🌐 mDNS avviato!");
-        Serial.printf("Accedi al dispositivo a: http://%s\n", WiFi.getHostname());
-      } else {
-        Serial.println("⚠️ Errore mDNS!");
+          // ===== Start mDNS =====
+          if (MDNS.begin(WiFi.getHostname())) {
+            Serial.println("🌐 mDNS started!");
+            Serial.printf("Access the device at: http://%s\n", WiFi.getHostname());
+          } else {
+            Serial.println("⚠️ Error starting mDNS!");
+          }
+
+          return 200; // OK
+        }
+
+        Serial.println("\n❌ Unable to connect to the found network.");
       }
-
-      return 200; // ✅ WiFi connection successful
-    } else {
-      Serial.println("\n❌ Connessione fallita...");
     }
   }
 
-  // No network worked
-  Serial.println("⚠️ Nessuna rete disponibile.");
+  Serial.println("⚠️ No saved networks found nearby.");
   return 500;
 }
+

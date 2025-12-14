@@ -3,7 +3,6 @@
 #include <SPI.h>
 #include "config.h"
 
-// Inizializzazione SPI software
 Adafruit_ST7789 TFT_SCREEN = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
 
 void initializeTFT() {
@@ -42,8 +41,7 @@ void showError(String error) {
 void newMessageScreen() {
   TFT_SCREEN.fillScreen(ST77XX_BLACK);
 
-  // Testo
-  const char* text = "Nuovo Messaggio";
+  const char* text = NEW_MESSAGE_MSG;
   TFT_SCREEN.setTextColor(ST77XX_CYAN);
   TFT_SCREEN.setTextSize(3);
 
@@ -52,9 +50,8 @@ void newMessageScreen() {
   TFT_SCREEN.getTextBounds(text, 0, 0, &x1, &y1, &w, &h);
 
   int textX = (TFT_SCREEN.width() - w) / 2;
-  int textY = (TFT_SCREEN.height() - h) / 2; // leggermente più in basso per fare spazio all’immagine
+  int textY = (TFT_SCREEN.height() - h) / 2;
 
-  // Mostra il testo centrato
   TFT_SCREEN.setCursor(textX, textY);
   TFT_SCREEN.println(text);
 }
@@ -63,7 +60,6 @@ void drawHorizontalLine(int y, uint16_t color = ST77XX_WHITE, int thickness = 1,
   int x = margin;
   int width = TFT_SCREEN.width() - 2 * margin;
 
-  // Se vuoi una linea più spessa, disegna più linee vicine
   for (int i = 0; i < thickness; i++) {
     TFT_SCREEN.drawFastHLine(x, y + i, width, color);
   }

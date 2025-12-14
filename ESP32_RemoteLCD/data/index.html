@@ -74,7 +74,7 @@
     .wifi-bars span { width:4px; background:#233147; border-radius:2px; display:block; }
     .wifi-bars span.on { background:var(--accent); }
   </style>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" id="manifest" href="/manifest.json">
   <meta name="theme-color" content="#22d3ee">
   <link rel="shortcut icon" href="icons/ESP32.png" type="image/x-icon">
 </head>
@@ -161,6 +161,19 @@
       document.getElementById('msg').value = '';
       setTimeout(() => { document.getElementById('result').textContent = ''; }, 5000);
       refresh();
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("form");
+      const manifest = document.getElementById("manifest");
+      const path = window.location.pathname;
+
+      if (path !== "/change") {
+        form.style.display = "none";
+      }else{
+        console.log("Changing manifest for /change path");
+        manifest.setAttribute("href", "/manifest-change.json");
+      }
     });
 
     refresh();

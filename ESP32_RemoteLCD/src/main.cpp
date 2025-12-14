@@ -59,7 +59,7 @@ void printOnLCDScreen(String msg){
     int currentY = TFT_SCREEN.getCursorY();
     drawRSSIBars(WiFi.RSSI(), SCREEN_WIDTH-60, currentY+5, 6, 4, 2);
   }else{
-    TFT_SCREEN.println("\n No WiFi");
+    TFT_SCREEN.println("\n " + (String)NO_WIFI_MSG);
   }
   TFT_SCREEN.setTextColor(ST77XX_GREEN);
   TFT_SCREEN.print("\n");
@@ -73,7 +73,7 @@ void printOnLCDScreen(String msg){
   TFT_SCREEN.print(" ");
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   if(currentTimeOnlyStr=="" || currentDateStr=="" || WIFI_SSID==""){
-    TFT_SCREEN.print("Orario non disponibile");
+    TFT_SCREEN.print((String)NO_CLOCK_MSG);
   }else{
     TFT_SCREEN.print(currentTimeOnlyStr + " - " + currentDateStr);
   }
@@ -143,7 +143,7 @@ void update_message(String message){
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n\nAvvio ESP32...");
+  Serial.println("\n\nStarting ESP32...");
   delay(1000);
 
   // ===== Setup LED pin =====
@@ -151,42 +151,45 @@ void setup() {
 
   // initialize the LCD screen
   initializeTFT();
-  showMessageOnTFT("\n Avvio dispositivo...");
+  showMessageOnTFT("\n " + (String)START_DEVICE_MSG);
 
   // ===== Initialize DHT22 sensor =====
   dht.begin();
 
   // ===== Connect to WiFi =====
   if(initWiFi() == 200){
-    Serial.println("Connessione WiFi riuscita.");
-    // showMessageOnTFT("Connesso al WiFi: " + WIFI_SSID);
+    Serial.println("WiFi connection successful.");
     // Setup timezone and NTP servers using configTzTime (handles TZ internally)
     configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org", "time.nist.gov");
     updateCurrentTimeStr();
     delay(2000);
   }else{
-    Serial.println("Connessione WiFi fallita.");
+    Serial.println("WiFi connection failed.");
     // showMessageOnTFT("Connessione WiFi fallita.");
     delay(2000);
   }
 
   // ===== Init SPIFFS for static web files =====
   if(!SPIFFS.begin(true)){
-    Serial.println("Errore nell'inizializzazione SPIFFS");
+    Serial.println("Error initializing SPIFFS");
   }
 
   // ===== Load message from NVS =====
   prefs.begin("remote_lcd", false);
-  message = prefs.getString("msg", "Nessun messaggio presente");
+  message = prefs.getString("msg", "No message available");
   // api_message is used to remember the last message into api endpoint
-  String api_message = prefs.getString("api_msg", "Nessun messaggio presente");
-  Serial.println("Messaggio caricato: " + message);
+  String api_message = prefs.getString("api_msg", "No message available");
+  Serial.println("Message loaded: " + message);
   // printOnLCDScreen(message);
 
   // ===== Async WebServer routes =====
   // Serve static files from SPIFFS 'data' folder
   // Disable caching to ensure latest files are served
   server.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html").setCacheControl("no-cache, no-store, must-revalidate");
+
+  server.on("/change", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(SPIFFS, "/index.html", "text/html");
+  });
 
   // JSON status endpoint for the web UI
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -202,9 +205,9 @@ void setup() {
 
       update_message(message);
       
-      Serial.println("Nuovo messaggio da web: " + message);
+      Serial.println("New message from web: " + message);
     }
-    request->send(200, "text/html", "Messaggio aggiornato!");
+    request->send(200, "text/html", "Message updated!");
   });
 
   server.begin();
@@ -216,15 +219,21 @@ void loop() {
   temperature = dht.readTemperature() + TEMP_ERROR;
   humidity = dht.readHumidity();
   if (isnan(temperature) || isnan(humidity)) {
-    Serial.println("Errore nella lettura del sensore DHT22!");
+    Serial.println("Error reading DHT22 sensor!");
     temperature = 0.0;
     humidity = 0.0;
   }else{
-    Serial.println("Temperatura: " + String(temperature) + " C - Umidita: " + String(humidity) + " %");
+    Serial.println("Temperature: " + String(temperature) + " C - Humidity: " + String(humidity) + " %");
+  }
+
+  // check WiFi connection
+  if(WiFi.status() != WL_CONNECTED){
+    Serial.println("WiFi connection lost. Attempting to reconnect...");
+    // try to reconnect
+    initWiFi();
   }
 
   boolean updated = false;
-
   if(GET_FROM_API){
     // Fetch message from API
     HTTPClient http;
@@ -240,10 +249,10 @@ void loop() {
         updated = true;
         update_message(message);
 
-        Serial.println("Nuovo messaggio da API: " + message);
+        Serial.println("New message from API: " + message);
       }
     } else {
-      Serial.println("Errore nella richiesta HTTP: " + String(httpCode));
+      Serial.println("Error in HTTP request: " + String(httpCode));
     }
   }
 
