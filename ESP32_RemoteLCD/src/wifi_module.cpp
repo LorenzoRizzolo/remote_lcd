@@ -42,7 +42,7 @@ int initWiFi() {
         unsigned long startAttemptTime = millis();
 
         while (WiFi.status() != WL_CONNECTED &&
-               millis() - startAttemptTime < WIFI_TIME_OUT) {
+          millis() - startAttemptTime < WIFI_TIME_OUT) {
           Serial.print(".");
           delay(500);
         }
@@ -52,6 +52,8 @@ int initWiFi() {
           Serial.println("\n✅ Connection successful!");
           Serial.print("SSID: "); Serial.println(WIFI_SSID);
           Serial.print("IP: "); Serial.println(WiFi.localIP());
+          Serial.print("RSSI: "); Serial.print(WiFi.RSSI()); Serial.println(" dBm");
+          Serial.print("Hostname: "); Serial.println(WiFi.getHostname());
 
           // ===== Start mDNS =====
           if (MDNS.begin(WiFi.getHostname())) {

@@ -54,12 +54,13 @@ void printOnLCDScreen(String msg){
   TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.setTextColor(ST77XX_MAGENTA);
   if(WIFI_SSID!=""){
-    TFT_SCREEN.println("\n " + WiFi.localIP().toString());
+    // TFT_SCREEN.println("\n" + WiFi.localIP().toString());
+    TFT_SCREEN.print("\nhttp://"); TFT_SCREEN.println(WiFi.getHostname());
     // Draw RSSI bars under IP
     int currentY = TFT_SCREEN.getCursorY();
-    drawRSSIBars(WiFi.RSSI(), SCREEN_WIDTH-60, currentY+5, 6, 4, 2);
+    drawRSSIBars(WiFi.RSSI(), SCREEN_WIDTH-60, currentY+30, 6, 4, 2);
   }else{
-    TFT_SCREEN.println("\n " + (String)NO_WIFI_MSG);
+    TFT_SCREEN.println("\n" + (String)NO_WIFI_MSG);
   }
   TFT_SCREEN.setTextColor(ST77XX_GREEN);
   TFT_SCREEN.print("\n");
@@ -70,7 +71,7 @@ void printOnLCDScreen(String msg){
   }
 
   //  Print current time
-  TFT_SCREEN.print(" ");
+  // TFT_SCREEN.print(" ");
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   if(currentTimeOnlyStr=="" || currentDateStr=="" || WIFI_SSID==""){
     TFT_SCREEN.print((String)NO_CLOCK_MSG);
@@ -81,7 +82,7 @@ void printOnLCDScreen(String msg){
   TFT_SCREEN.setTextSize(2);
   TFT_SCREEN.print("\n\n");
 
-  TFT_SCREEN.print(" ");
+  // TFT_SCREEN.print(" ");
   TFT_SCREEN.setTextSize(4);
 
   // Print temperature with color coding
@@ -99,7 +100,7 @@ void printOnLCDScreen(String msg){
 
   TFT_SCREEN.print("\n\n");
   TFT_SCREEN.setTextColor(ST77XX_YELLOW);
-  TFT_SCREEN.print(" ");
+  // TFT_SCREEN.print(" ");
   TFT_SCREEN.print(humidity, 1);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   TFT_SCREEN.println(" %");
@@ -110,7 +111,9 @@ void printOnLCDScreen(String msg){
   }
 
   // print the message
-  TFT_SCREEN.print("\n " + (String)msg);
+  TFT_SCREEN.setTextSize(3);
+  TFT_SCREEN.print("\n");
+  printWithNewlines(msg);
 }
 
 void ledTask(void *parameter) {

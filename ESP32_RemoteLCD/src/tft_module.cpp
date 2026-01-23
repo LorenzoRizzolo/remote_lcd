@@ -17,25 +17,25 @@ void initializeTFT() {
 
 void clearTFT() {
   TFT_SCREEN.fillScreen(ST77XX_BLACK);
-  TFT_SCREEN.setCursor(0, 0);
+  TFT_SCREEN.setCursor(START_X, START_Y);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   TFT_SCREEN.setTextSize(TEXT_SIZE);
 }
 
 void showMessageOnTFT(String msg) {
   TFT_SCREEN.fillScreen(ST77XX_BLACK);
-  TFT_SCREEN.setCursor(0, 0);
+  TFT_SCREEN.setCursor(START_X, START_Y);
   TFT_SCREEN.setTextColor(ST77XX_WHITE);
   TFT_SCREEN.setTextSize(TEXT_SIZE);
   TFT_SCREEN.println(msg);
 }
 
 void showError(String error) {
-    TFT_SCREEN.fillScreen(ST77XX_BLACK);
-    TFT_SCREEN.setCursor(0, 0);
-    TFT_SCREEN.setTextColor(ST77XX_RED);
-    TFT_SCREEN.setTextSize(3);
-    TFT_SCREEN.println(error);
+  TFT_SCREEN.fillScreen(ST77XX_BLACK);
+  TFT_SCREEN.setCursor(START_X, START_Y);
+  TFT_SCREEN.setTextColor(ST77XX_RED);
+  TFT_SCREEN.setTextSize(3);
+  TFT_SCREEN.println(error);
 }
 
 void newMessageScreen() {
@@ -85,3 +85,23 @@ void drawRSSIBars(int rssi, int x, int y, int barWidth, int barSpacing, int base
     TFT_SCREEN.fillRect(bx, by, barWidth, height, color);
   }
 }
+
+void printWithNewlines(const String& msg) {
+  for (int i = 0; i < msg.length(); i++) {
+    char c = msg[i];
+
+    // Se troviamo '\'
+    if (c == '\\') {
+      // Controlliamo che esista il carattere successivo
+      if (i + 1 < msg.length() && msg[i + 1] == 'n') {
+        TFT_SCREEN.println();  // vai a capo
+        i++;                   // salta la 'n'
+        continue;
+      }
+    }
+
+    // Carattere normale
+    TFT_SCREEN.print(c);
+  }
+}
+
