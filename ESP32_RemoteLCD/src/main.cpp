@@ -30,6 +30,9 @@ String currentTimeStr = "";      // e.g., "2025-12-07 13:53"
 String currentDateStr = "";      // e.g., "2025-12-07"
 String currentTimeOnlyStr = "";  // e.g., "13:53"
 
+// state of LCD backlight
+bool backlightOn = true;
+
 static void updateCurrentTimeStr() {
   struct tm timeinfo;
   if (getLocalTime(&timeinfo, 1000)) { // wait up to 1s
@@ -58,6 +61,7 @@ void printOnLCDScreen(String msg){
     TFT_SCREEN.print("\nhttp://"); TFT_SCREEN.println(WiFi.getHostname());
     // Draw RSSI bars under IP
     int currentY = TFT_SCREEN.getCursorY();
+    Serial.printf("WiFi RSSI: %d dBm\n", WiFi.RSSI());
     drawRSSIBars(WiFi.RSSI(), SCREEN_WIDTH-60, currentY+30, 6, 4, 2);
   }else{
     TFT_SCREEN.println("\n" + (String)NO_WIFI_MSG);
@@ -151,6 +155,9 @@ void setup() {
 
   // ===== Setup LED pin =====
   pinMode(LED_BLINK_PIN, OUTPUT);
+  pinMode(PIN_LCD_BACKLIGHT, OUTPUT);
+  digitalWrite(PIN_LCD_BACKLIGHT, HIGH); // Turn on backlight
+  backlightOn = true;
 
   // initialize the LCD screen
   initializeTFT();
@@ -197,7 +204,7 @@ void setup() {
   // JSON status endpoint for the web UI
   server.on("/status", HTTP_GET, [](AsyncWebServerRequest *request){
     updateCurrentTimeStr();
-    String json = "{\"message\":\"" + message + "\",\"temperature\":" + String(temperature, 1) + ",\"humidity\":" + String(humidity, 1) + ",\"time\":\"" + currentTimeStr + "\",\"rssi\":" + String(WiFi.RSSI()) + ",\"ssid\":\"" + WIFI_SSID + "\"}";
+    String json = "{\"message\":\"" + message + "\",\"temperature\":" + String(temperature, 1) + ",\"humidity\":" + String(humidity, 1) + ",\"time\":\"" + currentTimeStr + "\",\"rssi\":" + String(WiFi.RSSI()) + ",\"ssid\":\"" + WIFI_SSID + "\",\"backlight_on\":" + String(backlightOn ? "true" : "false") + "}";
     request->send(200, "application/json", json);
   });
 
@@ -211,6 +218,14 @@ void setup() {
       Serial.println("New message from web: " + message);
     }
     request->send(200, "text/html", "Message updated!");
+  });
+
+  server.on("/toggle_backlight", HTTP_GET, [](AsyncWebServerRequest *request){
+    Serial.println("Toggling backlight...");
+    backlightOn = !backlightOn;
+    digitalWrite(PIN_LCD_BACKLIGHT, backlightOn ? HIGH : LOW);
+    String json = "{\"backlight_on\":" + String(backlightOn ? "true" : "false") + "}";
+    request->send(200, "application/json", json);
   });
 
   server.begin();

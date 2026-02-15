@@ -3,6 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link rel="manifest" id="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#22d3ee">
+  <link rel="shortcut icon" href="icons/ESP32.png" type="image/x-icon">
+
+  <!-- google icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp" rel="stylesheet" />
+
   <title>RemoteLCD</title>
   <style>
     :root { 
@@ -73,10 +84,21 @@
     .wifi-bars { display:inline-flex; gap:3px; align-items:flex-end; height:16px; }
     .wifi-bars span { width:4px; background:#233147; border-radius:2px; display:block; }
     .wifi-bars span.on { background:var(--accent); }
+
+    .circle {
+      background-color: #22d3ee;
+      border-radius: 10px;
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: black;
+      margin-left: 20px;
+      margin-right: 20px;
+      margin-top: 20px;
+      max-width: 150px;
+    }
   </style>
-  <link rel="manifest" id="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#22d3ee">
-  <link rel="shortcut icon" href="icons/ESP32.png" type="image/x-icon">
 </head>
 <body>
   <div class="container">
@@ -87,6 +109,11 @@
           <span class="chip">Web UI</span>
         </h1>
       </header>
+
+        <button class="circle" onclick="toggle_power()">
+          <span class="material-symbols-outlined">power_settings_new</span>
+          <span id="powerStatus"></span>
+        </button>
       <main>
         <div class="stat">
           <h2>Ambiente</h2>
@@ -134,6 +161,15 @@
       });
     }
 
+    function toggle_power() {
+      fetch('/toggle_backlight')
+        .then(r => r.json())
+        .then(j => {
+          document.getElementById('powerStatus').textContent = j.backlight_on ? 'Spegni' : 'Accendi';
+        })
+        .catch(e => console.log(e));
+    }
+
     async function refresh() {
       try {
         const r = await fetch('/status');
@@ -147,6 +183,7 @@
         document.getElementById('time').textContent = (timeStr || '').slice(0,5) || '—';
         document.getElementById('wifiSsid').textContent = (j.ssid || '—');
         document.getElementById('wifiRssi').textContent = (typeof j.rssi !== 'undefined' ? j.rssi : '—');
+        document.getElementById('powerStatus').textContent = j.backlight_on ? 'Spegni' : 'Accendi';
         setWifiBars(j.rssi);
       } catch (e) { console.log(e); }
     }
