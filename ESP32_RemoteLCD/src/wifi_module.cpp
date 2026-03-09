@@ -36,11 +36,12 @@ int initWiFi() {
     // compare with known networks list
     for (int s = 0; s < WIFI_COUNT; s++) {
       if (foundSSID == WIFI_SSIDS[s]) {
-        Serial.printf("🎯 Known network found: %s\n", foundSSID.c_str());
-        Serial.println("🔗 Attempting to connect...");
+        Serial.printf("\t🎯 Known network found: %s\n", foundSSID.c_str());
+        Serial.println("\t🔗 Attempting to connect...");
         WiFi.begin(WIFI_SSIDS[s], WIFI_PASSWORDS[s]);
         unsigned long startAttemptTime = millis();
 
+        Serial.print("\t");
         while (WiFi.status() != WL_CONNECTED &&
           millis() - startAttemptTime < WIFI_TIME_OUT) {
           Serial.print(".");
@@ -66,7 +67,7 @@ int initWiFi() {
           return 200; // OK
         }
 
-        Serial.println("\n❌ Unable to connect to the found network.");
+        Serial.println("\n\t❌ Unable to connect to the found network.");
       }
     }
   }

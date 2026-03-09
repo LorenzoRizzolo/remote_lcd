@@ -221,7 +221,7 @@ void setup() {
   });
 
   server.on("/toggle_backlight", HTTP_GET, [](AsyncWebServerRequest *request){
-    Serial.println("Toggling backlight...");
+    Serial.println("Toggling backlight to " + String(!backlightOn ? "ON" : "OFF"));
     backlightOn = !backlightOn;
     digitalWrite(PIN_LCD_BACKLIGHT, backlightOn ? HIGH : LOW);
     String json = "{\"backlight_on\":" + String(backlightOn ? "true" : "false") + "}";
@@ -247,7 +247,6 @@ void loop() {
   // check WiFi connection
   if(WiFi.status() != WL_CONNECTED){
     Serial.println("WiFi connection lost. Attempting to reconnect...");
-    // try to reconnect
     initWiFi();
   }
 
